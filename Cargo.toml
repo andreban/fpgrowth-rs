@@ -1,0 +1,13 @@
+[package]
+name = "fpgrowth-rs"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+keywords = ["fpgrowth", "data-mining", "machine-learning"]
+authors = ["Andre Cipriani Bandarra"]
+repository = "https://github.com/andreban/fpgrowth-rs/"
+description = "An implementation of the FP Growth algorithm for data mining in pure Rust"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

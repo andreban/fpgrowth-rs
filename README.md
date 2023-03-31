@@ -25,4 +25,6 @@ fn main() {
 }
 ```
 
+[![Build](https://github.com/andreban/fpgrowth-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/andreban/fpgrowth-rs/actions/workflows/rust.yml)
+
 [1]: https://en.wikipedia.org/wiki/Association_rule_learning#FP-growth_algorithm

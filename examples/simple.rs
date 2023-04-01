@@ -26,7 +26,7 @@ fn main() {
         vec!["B", "C"],
     ];
 
-    fp_growth(transactions, 3, |item_set, occurences| {
+    fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
         println!("{:?}: {}", item_set, occurences)
     });
 }

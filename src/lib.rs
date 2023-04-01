@@ -141,9 +141,9 @@ impl<'a> FpTree<'a> {
     }
 }
 
-fn fp_growth_tree<F>(fp_tree: FpTree, collect: &F, path: Vec<&str>)
+fn fp_growth_tree<F>(fp_tree: FpTree, collect: &mut F, path: Vec<&str>)
 where
-    F: Fn(&[&str], usize),
+    F: FnMut(&[&str], usize),
 {
     // TODO: this should be from less frequent to most frequent.
     for item in fp_tree.frequencies.keys() {
@@ -161,17 +161,17 @@ where
 }
 
 /// Collects frequent item sets from the provided transactions.
-/// 
+///
 /// # Arguments
 /// * `transactions` - a list of transactions.
 /// * `min_support` - the minimum support.
 /// * `collect` - a closure that will be invoked when a new item set that matches the minimum
 ///               support is found.
-/// 
+///
 /// # Example
 /// ```
 /// use fpgrowth_rs::fp_growth;
-/// 
+///
 /// let transactions = vec![
 ///     vec!["E", "A", "D", "B"],
 ///     vec!["D", "A", "C", "E", "B"],
@@ -186,12 +186,12 @@ where
 /// fp_growth(transactions, 3, |item_set, occurences| {
 ///     println!("{:?}: {}", item_set, occurences)
 /// });
-/// 
+///
 /// ```
-pub fn fp_growth<F>(transactions: Vec<Vec<&str>>, min_support: usize, collect: F)
+pub fn fp_growth<'a, F>(transactions: Vec<Vec<&'a str>>, min_support: usize, mut collect: F)
 where
-    F: Fn(&[&str], usize),
+    F: FnMut(&[&str], usize),
 {
     let fp_tree = FpTree::new(transactions, min_support);
-    fp_growth_tree(fp_tree, &collect, vec![]);
+    fp_growth_tree(fp_tree, &mut collect, vec![]);
 }

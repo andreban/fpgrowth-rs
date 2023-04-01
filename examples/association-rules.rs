@@ -62,8 +62,7 @@ fn main() {
     });
 
     println!("\nAssociation Rules: ");
-    generate_association_rules(&results, num_transactions, &mut|association_rule| {
+    generate_association_rules(&results, num_transactions, &mut |association_rule| {
         println!("{:?}", association_rule);
     });
-    
 }

@@ -34,12 +34,12 @@ impl AssociationRule {
 }
 
 /// Generates assoatoin rules from frequent item sets.
-pub fn generate_association_rules<F> (
+pub fn generate_association_rules<F>(
     frequent_item_sets: &HashMap<Vec<String>, usize>,
     num_transactions: usize,
     on_association_rule: &mut F,
-)
-where F: FnMut(AssociationRule)
+) where
+    F: FnMut(AssociationRule),
 {
     for set in frequent_item_sets.keys() {
         if set.len() == 1 {

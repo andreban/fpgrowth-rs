@@ -11,3 +11,11 @@ description = "An implementation of the FP Growth algorithm for data mining in p
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rayon = {version = "1.7.0", optional = true}
+
+[features]
+parallel = ["dep:rayon"]
+
+[[example]]
+name = "parallel"
+required-features = ["parallel"]

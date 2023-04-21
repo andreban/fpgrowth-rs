@@ -15,7 +15,7 @@
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
-struct FpNode<'a> {
+pub(crate) struct FpNode<'a> {
     key: &'a str,
     occurences: usize,
     children: BTreeMap<&'a str, FpNode<'a>>,
@@ -65,14 +65,14 @@ impl<'a> FpNode<'a> {
 }
 
 #[derive(Debug)]
-struct FpTree<'a> {
-    root: BTreeMap<&'a str, FpNode<'a>>,
-    frequencies: BTreeMap<&'a str, usize>,
-    min_support: usize,
+pub(crate) struct FpTree<'a> {
+    pub(crate) root: BTreeMap<&'a str, FpNode<'a>>,
+    pub(crate) frequencies: BTreeMap<&'a str, usize>,
+    pub(crate) min_support: usize,
 }
 
 impl<'a> FpTree<'a> {
-    fn new(transactions: &[Vec<&'a str>], min_support: usize) -> Self {
+    pub(crate) fn new(transactions: &[Vec<&'a str>], min_support: usize) -> Self {
         let transactions = transactions
             .into_iter()
             .map(|t| (t.to_vec(), 1_usize))
@@ -129,7 +129,7 @@ impl<'a> FpTree<'a> {
         }
     }
 
-    fn build_conditional_tree(&self, item: &str) -> FpTree {
+    pub(crate) fn build_conditional_tree(&self, item: &str) -> FpTree<'a> {
         // Build transactions...
         let mut lists = vec![];
         let path = Vec::new();

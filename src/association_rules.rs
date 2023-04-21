@@ -33,7 +33,7 @@ impl AssociationRule {
     }
 }
 
-/// Generates assoatoin rules from frequent item sets.
+/// Generates association rules from frequent item sets.
 pub fn generate_association_rules<F>(
     frequent_item_sets: &HashMap<Vec<String>, usize>,
     num_transactions: usize,

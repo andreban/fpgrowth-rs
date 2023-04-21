@@ -98,7 +98,8 @@ impl<'a> FpTree<'a> {
             // Filter out items which frequency is below min_support.
             let mut transaction = transaction
                 .iter()
-                .filter(|item| *frequencies.get(*item).unwrap() >= min_support).copied()
+                .filter(|item| *frequencies.get(*item).unwrap() >= min_support)
+                .copied()
                 .collect::<Vec<_>>();
             if transaction.is_empty() {
                 continue;

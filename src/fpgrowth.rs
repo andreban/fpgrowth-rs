@@ -74,7 +74,7 @@ pub(crate) struct FpTree<'a> {
 impl<'a> FpTree<'a> {
     pub(crate) fn new(transactions: &[Vec<&'a str>], min_support: usize) -> Self {
         let transactions = transactions
-            .into_iter()
+            .iter()
             .map(|t| (t.to_vec(), 1_usize))
             .collect::<Vec<_>>();
         FpTree::build_fp_tree(transactions.as_slice(), min_support)
@@ -98,8 +98,7 @@ impl<'a> FpTree<'a> {
             // Filter out items which frequency is below min_support.
             let mut transaction = transaction
                 .iter()
-                .filter(|item| *frequencies.get(*item).unwrap() >= min_support)
-                .map(|item| *item)
+                .filter(|item| *frequencies.get(*item).unwrap() >= min_support).copied()
                 .collect::<Vec<_>>();
             if transaction.is_empty() {
                 continue;
@@ -109,7 +108,7 @@ impl<'a> FpTree<'a> {
             transaction.sort_by(|a, b| {
                 let a_freq = frequencies.get(a).unwrap();
                 let b_freq = frequencies.get(b).unwrap();
-                let cmp = b_freq.cmp(&a_freq);
+                let cmp = b_freq.cmp(a_freq);
                 if std::cmp::Ordering::Equal == cmp {
                     return a.cmp(b);
                 }
@@ -188,7 +187,7 @@ where
 /// });
 ///
 /// ```
-pub fn fp_growth<'a, F>(transactions: &'a [Vec<&str>], min_support: usize, mut collect: F)
+pub fn fp_growth<F>(transactions: &[Vec<&str>], min_support: usize, mut collect: F)
 where
     F: FnMut(&[&str], usize),
 {

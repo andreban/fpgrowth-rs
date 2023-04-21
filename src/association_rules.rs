@@ -64,8 +64,7 @@ pub fn generate_association_rules<F>(
         for item in set {
             let antecedent_set = set
                 .iter()
-                .filter(|i| *i != item)
-                .map(|i| i.clone())
+                .filter(|i| *i != item).cloned()
                 .collect::<Vec<_>>();
             let consequent_set = vec![item.clone()];
             let antecedent_support =

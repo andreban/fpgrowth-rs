@@ -46,7 +46,7 @@ fn handle_item<'a>(
                 let cloned_tx = tx.clone();
                 paralled_fp_growth_tree(conditional_tree, cloned_path, cloned_tx, s);
             }
-            _ => return,
+            _ => (),
         }
     });
 }
@@ -91,7 +91,7 @@ fn paralled_fp_growth_tree<'a>(
 /// });
 ///
 /// ```
-pub fn parallel_fp_growth<'a, F>(transactions: &'a [Vec<&str>], min_support: usize, mut collect: F)
+pub fn parallel_fp_growth<F>(transactions: &[Vec<&str>], min_support: usize, mut collect: F)
 where
     F: FnMut(&[&str], usize) + Send,
 {

@@ -1,6 +1,9 @@
 use crate::fpgrowth::{FpNode, FpTree};
 use rayon::Scope;
-use std::sync::mpsc::{channel, Sender};
+use std::sync::{
+    mpsc::{channel, Sender},
+    Arc,
+};
 
 unsafe impl<'a> Send for FpNode<'a> {}
 unsafe impl<'a> Sync for FpNode<'a> {}
@@ -8,14 +11,14 @@ unsafe impl<'a> Sync for FpNode<'a> {}
 unsafe impl<'a> Send for FpTree<'a> {}
 unsafe impl<'a> Sync for FpTree<'a> {}
 
-fn paralled_fp_growth_tree<'a>(
-    fp_tree: FpTree<'a>,
+fn handle_item<'a>(
+    fp_tree: Arc<FpTree<'a>>,
     path: Vec<&'a str>,
     tx: Sender<(Vec<&'a str>, usize)>,
     s: &Scope<'a>,
+    item: &'a str,
 ) {
-    // TODO: this should be from less frequent to most frequent.
-    for item in fp_tree.frequencies.keys() {
+    s.spawn(move |s| {
         match fp_tree.frequencies.get(item) {
             Some(frequency) if *frequency >= fp_tree.min_support => {
                 // Collect the data.
@@ -27,12 +30,22 @@ fn paralled_fp_growth_tree<'a>(
                 let conditional_tree = fp_tree.build_conditional_tree(item);
                 let cloned_path = path.clone();
                 let cloned_tx = tx.clone();
-                s.spawn(move |s| {
-                    paralled_fp_growth_tree(conditional_tree, cloned_path, cloned_tx, s);
-                });
+                paralled_fp_growth_tree(conditional_tree, cloned_path, cloned_tx, s);
             }
-            _ => continue,
+            _ => return,
         }
+    });
+}
+fn paralled_fp_growth_tree<'a>(
+    fp_tree: FpTree<'a>,
+    path: Vec<&'a str>,
+    tx: Sender<(Vec<&'a str>, usize)>,
+    s: &Scope<'a>,
+) {
+    // TODO: this should be from less frequent to most frequent.
+    let fp_tree = Arc::new(fp_tree);
+    for item in fp_tree.frequencies.keys() {
+        handle_item(fp_tree.clone(), path.clone(), tx.clone(), s, item);
     }
 }
 

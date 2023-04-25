@@ -1,6 +1,6 @@
 # fpgrowth-rs
 
-An implementation of the [FP Growth][1] data mining algorithm in pure Rust.
+An implementation of the [FP Growth][1] data mining algorithm in Rust.
 
 ## Example usage
 

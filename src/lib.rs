@@ -17,7 +17,7 @@ pub(crate) mod fpgrowth;
 #[cfg(feature = "parallel")]
 mod parallel_fpgrowth;
 
-pub use association_rules::generate_association_rules;
+pub use association_rules::{generate_association_rules, AssociationRule};
 pub use fpgrowth::fp_growth;
 
 #[cfg(feature = "parallel")]

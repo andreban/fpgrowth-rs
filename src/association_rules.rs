@@ -14,7 +14,7 @@
 
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct AssociationRule {
     pub antecedent_set: Vec<String>,
     pub consequent_set: Vec<String>,

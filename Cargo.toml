@@ -19,3 +19,7 @@ parallel = ["dep:rayon"]
 [[example]]
 name = "parallel"
 required-features = ["parallel"]
+
+[[test]]
+name = "parallel"
+required-features = ["parallel"]

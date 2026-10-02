@@ -15,9 +15,8 @@
 #[cfg(feature = "parallel")]
 use fpgrowth_rs::parallel_fp_growth;
 
-#[cfg(feature = "parallel")]
 #[test]
-fn test_single_threaded() {
+fn test_parallel() {
     let transactions = vec![
         vec!["E", "A", "D", "B"],
         vec!["D", "A", "C", "E", "B"],
@@ -30,9 +29,9 @@ fn test_single_threaded() {
     ];
 
     let mut frequent_item_sets = vec![];
-    parallel_fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
+    parallel_fp_growth(transactions.as_slice(), 3, |item_set, occurrences| {
         let item_set = item_set.iter().map(|i| i.to_string()).collect::<Vec<_>>();
-        frequent_item_sets.push((item_set, occurences));
+        frequent_item_sets.push((item_set, occurrences));
     });
 
     assert_eq!(frequent_item_sets.len(), 15);

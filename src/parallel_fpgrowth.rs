@@ -12,18 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::fpgrowth::{FpNode, FpTree};
+use crate::fpgrowth::FpTree;
 use rayon::Scope;
 use std::sync::{
     mpsc::{channel, Sender},
     Arc,
 };
-
-unsafe impl<'a> Send for FpNode<'a> {}
-unsafe impl<'a> Sync for FpNode<'a> {}
-
-unsafe impl<'a> Send for FpTree<'a> {}
-unsafe impl<'a> Sync for FpTree<'a> {}
 
 fn handle_item<'a>(
     fp_tree: Arc<FpTree<'a>>,
@@ -44,21 +38,37 @@ fn handle_item<'a>(
                 let conditional_tree = fp_tree.build_conditional_tree(item);
                 let cloned_path = path.clone();
                 let cloned_tx = tx.clone();
-                paralled_fp_growth_tree(conditional_tree, cloned_path, cloned_tx, s);
+                parallel_fp_growth_tree(conditional_tree, cloned_path, cloned_tx, s);
             }
             _ => (),
         }
     });
 }
-fn paralled_fp_growth_tree<'a>(
+
+fn parallel_fp_growth_tree<'a>(
     fp_tree: FpTree<'a>,
     path: Vec<&'a str>,
     tx: Sender<(Vec<&'a str>, usize)>,
     s: &Scope<'a>,
 ) {
-    // TODO: this should be from less frequent to most frequent.
     let fp_tree = Arc::new(fp_tree);
-    for item in fp_tree.frequencies.keys() {
+    let mut items: Vec<_> = fp_tree
+        .frequencies
+        .iter()
+        .filter(|(_, &freq)| freq >= fp_tree.min_support)
+        .map(|(&item, &freq)| (item, freq))
+        .collect();
+
+    items.sort_by(|(item_a, freq_a), (item_b, freq_b)| {
+        let cmp = freq_a.cmp(freq_b);
+        if std::cmp::Ordering::Equal == cmp {
+            item_b.cmp(item_a)
+        } else {
+            cmp
+        }
+    });
+
+    for (item, _) in items {
         handle_item(fp_tree.clone(), path.clone(), tx.clone(), s, item);
     }
 }
@@ -69,11 +79,11 @@ fn paralled_fp_growth_tree<'a>(
 /// * `transactions` - a list of transactions.
 /// * `min_support` - the minimum support.
 /// * `collect` - a closure that will be invoked when a new item set that matches the minimum
-///               support is found.
+///   support is found.
 ///
 /// # Example
 /// ```
-/// use fpgrowth_rs::fp_growth;
+/// use fpgrowth_rs::parallel_fp_growth;
 ///
 /// let transactions = vec![
 ///     vec!["E", "A", "D", "B"],
@@ -86,21 +96,28 @@ fn paralled_fp_growth_tree<'a>(
 ///     vec!["B", "C"],
 /// ];
 ///
-/// fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
-///     println!("{:?}: {}", item_set, occurences)
+/// parallel_fp_growth(transactions.as_slice(), 3, |item_set, occurrences| {
+///     println!("{:?}: {}", item_set, occurrences)
 /// });
-///
 /// ```
-pub fn parallel_fp_growth<F>(transactions: &[Vec<&str>], min_support: usize, mut collect: F)
+pub fn parallel_fp_growth<'a, F>(transactions: &[Vec<&'a str>], min_support: usize, mut collect: F)
 where
-    F: FnMut(&[&str], usize) + Send,
+    F: FnMut(&[&'a str], usize) + Send,
 {
-    rayon::scope(|s| {
-        let (tx, rx) = channel::<(Vec<&str>, usize)>();
-        let fp_tree = FpTree::new(transactions, min_support);
-        paralled_fp_growth_tree(fp_tree, vec![], tx, s);
-        while let Ok((a, b)) = rx.recv() {
-            collect(&a, b);
-        }
+    let fp_tree = FpTree::new(transactions, min_support);
+    let (tx, rx) = channel::<(Vec<&'a str>, usize)>();
+
+    std::thread::scope(|thread_scope| {
+        let handle = thread_scope.spawn(move || {
+            while let Ok((item_set, occurrences)) = rx.recv() {
+                collect(&item_set, occurrences);
+            }
+        });
+
+        rayon::scope(|s| {
+            parallel_fp_growth_tree(fp_tree, vec![], tx, s);
+        });
+
+        handle.join().unwrap();
     });
 }

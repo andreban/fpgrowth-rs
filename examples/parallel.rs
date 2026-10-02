@@ -26,7 +26,7 @@ fn main() {
         vec!["B", "C"],
     ];
 
-    parallel_fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
-        println!("{:?}: {}", item_set, occurences)
+    parallel_fp_growth(transactions.as_slice(), 3, |item_set, occurrences| {
+        println!("{:?}: {}", item_set, occurrences)
     });
 }

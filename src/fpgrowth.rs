@@ -17,7 +17,7 @@ use std::collections::BTreeMap;
 #[derive(Debug)]
 pub(crate) struct FpNode<'a> {
     key: &'a str,
-    occurences: usize,
+    occurrences: usize,
     children: BTreeMap<&'a str, FpNode<'a>>,
 }
 
@@ -25,25 +25,26 @@ impl<'a> FpNode<'a> {
     pub fn new(key: &'a str) -> Self {
         Self {
             key,
-            occurences: 0,
+            occurrences: 0,
             children: Default::default(),
         }
     }
 
     pub fn add(&mut self, transaction: &[&'a str], count: usize) {
-        if transaction[0] != self.key {
-            panic!()
-        }
-        self.occurences += count;
+        assert_eq!(
+            transaction[0], self.key,
+            "First transaction item must match node key"
+        );
+        self.occurrences += count;
 
-        if transaction.len() == 1 {
-            return;
+        let mut current = self;
+        for &item in &transaction[1..] {
+            current = current
+                .children
+                .entry(item)
+                .or_insert_with(|| FpNode::new(item));
+            current.occurrences += count;
         }
-
-        self.children
-            .entry(transaction[1])
-            .or_insert_with(|| FpNode::new(transaction[1]))
-            .add(&transaction[1..], count);
     }
 
     pub fn build_conditional_tree(
@@ -52,13 +53,13 @@ impl<'a> FpNode<'a> {
         mut path: Vec<&'a str>,
     ) -> Vec<(Vec<&'a str>, usize)> {
         if self.key == item {
-            return vec![(path, self.occurences)];
+            return vec![(path, self.occurrences)];
         }
 
         let mut lists = vec![];
         path.push(self.key);
         for child in self.children.values() {
-            lists.append(&mut child.build_conditional_tree(item, path.clone()))
+            lists.append(&mut child.build_conditional_tree(item, path.clone()));
         }
         lists
     }
@@ -83,33 +84,38 @@ impl<'a> FpTree<'a> {
     fn build_fp_tree(transactions: &[(Vec<&'a str>, usize)], min_support: usize) -> FpTree<'a> {
         // Build Frequency Lists (F-List)
         let mut frequencies = BTreeMap::new();
-        for (items, occurance) in transactions {
-            for item in items {
+        for (items, occurrence) in transactions {
+            let mut unique_items = items.clone();
+            unique_items.sort_unstable();
+            unique_items.dedup();
+            for item in unique_items {
                 frequencies
-                    .entry(*item)
-                    .and_modify(|count| *count += occurance)
-                    .or_insert(*occurance);
+                    .entry(item)
+                    .and_modify(|count| *count += *occurrence)
+                    .or_insert(*occurrence);
             }
         }
 
         // Build the FP-Tree
         let mut root = BTreeMap::new();
         for (transaction, count) in transactions {
-            // Filter out items which frequency is below min_support.
-            let mut transaction = transaction
-                .iter()
-                .filter(|item| *frequencies.get(*item).unwrap() >= min_support)
-                .copied()
+            // Filter out items whose frequency is below min_support, and deduplicate within transaction.
+            let mut unique_items = transaction.clone();
+            unique_items.sort_unstable();
+            unique_items.dedup();
+            let mut transaction = unique_items
+                .into_iter()
+                .filter(|item| frequencies.get(item).copied().unwrap_or(0) >= min_support)
                 .collect::<Vec<_>>();
             if transaction.is_empty() {
                 continue;
             }
 
-            // Sort transaction by item frequency.
+            // Sort transaction by descending item frequency (tie-breaker: lexicographical order).
             transaction.sort_by(|a, b| {
-                let a_freq = frequencies.get(a).unwrap();
-                let b_freq = frequencies.get(b).unwrap();
-                let cmp = b_freq.cmp(a_freq);
+                let a_freq = frequencies.get(a).copied().unwrap_or(0);
+                let b_freq = frequencies.get(b).copied().unwrap_or(0);
+                let cmp = b_freq.cmp(&a_freq);
                 if std::cmp::Ordering::Equal == cmp {
                     return a.cmp(b);
                 }
@@ -145,18 +151,29 @@ fn fp_growth_tree<F>(fp_tree: &FpTree, collect: &mut F, path: Vec<&str>)
 where
     F: FnMut(&[&str], usize),
 {
-    // TODO: this should be from less frequent to most frequent.
-    for item in fp_tree.frequencies.keys() {
-        match fp_tree.frequencies.get(item) {
-            Some(frequency) if *frequency >= fp_tree.min_support => {
-                let mut path = path.clone();
-                path.push(item);
-                collect(path.as_slice(), *frequency);
-                let conditional_tree = fp_tree.build_conditional_tree(item);
-                fp_growth_tree(&conditional_tree, collect, path);
-            }
-            _ => continue,
+    // Process items from least frequent to most frequent (standard FP-Growth bottom-up order)
+    let mut items: Vec<_> = fp_tree
+        .frequencies
+        .iter()
+        .filter(|(_, &freq)| freq >= fp_tree.min_support)
+        .map(|(&item, &freq)| (item, freq))
+        .collect();
+
+    items.sort_by(|(item_a, freq_a), (item_b, freq_b)| {
+        let cmp = freq_a.cmp(freq_b);
+        if std::cmp::Ordering::Equal == cmp {
+            item_b.cmp(item_a)
+        } else {
+            cmp
         }
+    });
+
+    for (item, frequency) in items {
+        let mut path = path.clone();
+        path.push(item);
+        collect(path.as_slice(), frequency);
+        let conditional_tree = fp_tree.build_conditional_tree(item);
+        fp_growth_tree(&conditional_tree, collect, path);
     }
 }
 
@@ -166,7 +183,7 @@ where
 /// * `transactions` - a list of transactions.
 /// * `min_support` - the minimum support.
 /// * `collect` - a closure that will be invoked when a new item set that matches the minimum
-///               support is found.
+///   support is found.
 ///
 /// # Example
 /// ```
@@ -183,10 +200,9 @@ where
 ///     vec!["B", "C"],
 /// ];
 ///
-/// fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
-///     println!("{:?}: {}", item_set, occurences)
+/// fp_growth(transactions.as_slice(), 3, |item_set, occurrences| {
+///     println!("{:?}: {}", item_set, occurrences)
 /// });
-///
 /// ```
 pub fn fp_growth<F>(transactions: &[Vec<&str>], min_support: usize, mut collect: F)
 where

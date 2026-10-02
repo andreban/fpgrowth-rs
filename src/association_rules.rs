@@ -55,23 +55,45 @@ pub fn generate_association_rules<F>(
 ) where
     F: FnMut(AssociationRule),
 {
-    for set in frequent_item_sets.keys() {
-        if set.len() == 1 {
+    if num_transactions == 0 {
+        return;
+    }
+
+    for (set, &count) in frequent_item_sets {
+        if set.len() <= 1 {
             continue;
         }
-        let combined_support =
-            *frequent_item_sets.get(set).unwrap() as f32 / num_transactions as f32;
+        let combined_support = count as f32 / num_transactions as f32;
         for item in set {
-            let antecedent_set = set
+            let mut antecedent_set = set
                 .iter()
                 .filter(|i| *i != item)
                 .cloned()
                 .collect::<Vec<_>>();
             let consequent_set = vec![item.clone()];
-            let antecedent_support =
-                *frequent_item_sets.get(&antecedent_set).unwrap() as f32 / num_transactions as f32;
-            let consequent_support =
-                *frequent_item_sets.get(&consequent_set).unwrap() as f32 / num_transactions as f32;
+
+            let antecedent_count = frequent_item_sets
+                .get(&antecedent_set)
+                .copied()
+                .or_else(|| {
+                    antecedent_set.sort();
+                    frequent_item_sets.get(&antecedent_set).copied()
+                });
+
+            let Some(antecedent_count) = antecedent_count else {
+                continue;
+            };
+
+            let Some(&consequent_count) = frequent_item_sets.get(&consequent_set) else {
+                continue;
+            };
+
+            let antecedent_support = antecedent_count as f32 / num_transactions as f32;
+            let consequent_support = consequent_count as f32 / num_transactions as f32;
+
+            if antecedent_support <= 0.0 || consequent_support <= 0.0 {
+                continue;
+            }
 
             let lift = combined_support / (antecedent_support * consequent_support);
             let confidence = combined_support / antecedent_support;

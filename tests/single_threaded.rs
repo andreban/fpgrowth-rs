@@ -28,10 +28,37 @@ fn test_single_threaded() {
     ];
 
     let mut frequent_item_sets = vec![];
-    fp_growth(transactions.as_slice(), 3, |item_set, occurences| {
+    fp_growth(transactions.as_slice(), 3, |item_set, occurrences| {
         let item_set = item_set.iter().map(|i| i.to_string()).collect::<Vec<_>>();
-        frequent_item_sets.push((item_set, occurences));
+        frequent_item_sets.push((item_set, occurrences));
     });
 
     assert_eq!(frequent_item_sets.len(), 15);
+}
+
+#[test]
+fn test_duplicate_items_in_transaction() {
+    let transactions = vec![vec!["A", "A", "B"], vec!["B", "B", "A"], vec!["A", "B"]];
+
+    let mut frequent_item_sets = vec![];
+    fp_growth(transactions.as_slice(), 2, |item_set, occurrences| {
+        let item_set = item_set.iter().map(|i| i.to_string()).collect::<Vec<_>>();
+        frequent_item_sets.push((item_set, occurrences));
+    });
+
+    // Each transaction contains {A, B} once. So A: 3, B: 3, {A, B}: 3.
+    for (set, count) in &frequent_item_sets {
+        assert_eq!(*count, 3, "Itemset {:?} should have support 3", set);
+    }
+    assert_eq!(frequent_item_sets.len(), 3);
+}
+
+#[test]
+fn test_empty_transactions() {
+    let transactions: Vec<Vec<&str>> = vec![vec![], vec![]];
+    let mut count = 0;
+    fp_growth(transactions.as_slice(), 1, |_item_set, _occurrences| {
+        count += 1;
+    });
+    assert_eq!(count, 0);
 }

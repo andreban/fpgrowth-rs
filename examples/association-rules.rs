@@ -24,7 +24,7 @@ use fpgrowth_rs::{fp_growth, generate_association_rules};
 /// the resulting association rules, the "antecedent support" for "potato chips" shows 0.45. This
 /// leads to the incorrect confidence and lifts in that table:
 ///  - The table shows a lift of 1.81 for "potato chips" -> "beer" and to
-///     "beer" -> "potato chips", the correct is 1.63.
+///    "beer" -> "potato chips", the correct is 1.63.
 ///  - The table shows the confidence for "potato chips" -> "beer" to be 1.0, the correct is 0.9.
 ///
 fn main() {
@@ -54,11 +54,11 @@ fn main() {
     println!("Common Item Sets: ");
     let num_transactions = transactions.len();
     let mut results = HashMap::new();
-    fp_growth(transactions.as_slice(), 7, |item_set, occurences| {
+    fp_growth(transactions.as_slice(), 7, |item_set, occurrences| {
         let mut items = item_set.iter().map(|i| i.to_string()).collect::<Vec<_>>();
         items.sort();
-        results.insert(items, occurences);
-        println!("{:?}: {}", item_set, occurences)
+        results.insert(items, occurrences);
+        println!("{:?}: {}", item_set, occurrences)
     });
 
     println!("\nAssociation Rules: ");
